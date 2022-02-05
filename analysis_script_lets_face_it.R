@@ -271,7 +271,7 @@ data %>%
   tab_df(file = './hand_sex_area_descriptives.html', digits = 3)
 
 # 5) compute mixed effects model -----------------------------------------------
-pkgcheck(c('lme4', 'car', 'sjPlot', 'performance', 'gt'))
+pkgcheck(c('lme4', 'car', 'performance', 'effectsize', 'gt'))
 
 # overall model
 mod_gamma_li <- glmer(data = data,
@@ -406,7 +406,7 @@ standardize_parameters(mod_ffa) %>%
     "./standardized_beta_mod_ffa.html", inline_css = TRUE)
   
 # check residuals
-plot(mod_ffa)
+plot(mod_ffa, ask = F)
 
 # 7) compute pairwise contrasts for interaction --------------------------------
 pkgcheck('emmeans')

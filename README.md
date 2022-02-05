@@ -6,9 +6,9 @@ Supplemental code for Thome, I., García Alanis, J.C., Volk, J., Vogelbacher, C.
 
 The data `LI_results_indiv-maxima_ROI-10mm_tthreshold_001unc.csv` (check the preprint for more information) and the analysis script `analysis_script_lets_facte_it.R` should be stored in the same directory.
 
-Runing the script should output all figures and supplementary tables containing the results reported in the manuscript.
+Running the script should output all figures and supplementary tables containing the results reported in the manuscript.
 
-The script takes care of installing and loadign the necessary packages for it to work.
+The script takes care of installing and loading the necessary packages for it to work.
 
 ```{r}
 R version 4.1.2 (2021-11-01)

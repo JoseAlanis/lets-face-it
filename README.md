@@ -10,6 +10,8 @@ Running the script should output all figures and supplementary tables containing
 
 The script takes care of installing and loading the necessary packages for it to work.
 
+## R session information
+
 ```{r}
 R version 4.1.2 (2021-11-01)
 Platform: x86_64-w64-mingw32/x64 (64-bit)

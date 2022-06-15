@@ -1,5 +1,6 @@
 # Title     : Let's face it: Lateralization of the face perception 
 # Objective : Test effect of handedness on lateralization score
+# Target    : Voxel Value on Conjunction Faces vs Houses, Faces vs Scrambled
 # Created by: jose c. garcia alanis
 # Created on: 2022-02-01
 # R version : R version 4.1.2 (2021-11-01)
@@ -68,9 +69,13 @@ apa <- function(x, title = " ", stub = T) {
 # 1) get the data --------------------------------------------------------------
 pkgcheck(c('dplyr', 'tidyr'))
 
+fname <- './LI_results_indiv-maxima_ROI-10mm_tthreshold_001unc.csv'
 # import csv
-data <- read.table('./LI_results_indiv-maxima_ROI-10mm_tthreshold_001unc.csv',
+data <- read.table(fname,
                    header = T, sep = ',', na.strings = c(9999.0000))
+# drop `data$notes`
+data <- data %>% 
+  select(!notes)
 
 
 # 2) prepare demographic data for modelling ------------------------------------
@@ -164,7 +169,8 @@ ggsave(filename = './LI_plot_10mm_hand.tiff',
        plot = li_plot, 
        width = 25, height = 10,  units = 'cm', dpi = 1200)
 
-# create dot plot
+# create dot plot showing distribution of LI values by area and participants'
+# characteristics
 int_plot <- ggplot(data = data, 
                    aes(x = sex, y = value, 
                        color = hand, shape = sex, fill = hand)) +
@@ -217,6 +223,150 @@ ggsave(filename = './interaction_plot_area_sex_hand.tiff',
        plot = int_plot, 
        width = 30, height = 12.5, units = 'cm',
        dpi = 1200)
+
+# check if lateralisation patterns are consistent across subject
+data <- data %>% 
+  select(subID, area, value) %>%
+  filter(area == 'OFA') %>%
+  mutate(lat = ifelse(area == 'OFA' & value > 0.2, 'left dom.',
+                      ifelse(area == 'OFA' & value < -0.2, 'right dom.', 'bilateral'))) %>%
+  select(subID, lat) %>%
+  right_join(., data, 'subID')
+
+# plot subjects by sex and handedness
+pd = position_dodge(0.2)
+subj_plot <- ggplot(data = filter(data, !is.na(lat)), 
+       aes(x = area,
+           y = value, group = subID, 
+           shape = sex, color = hand)) +
+  scale_x_discrete(limits = c('OFA', 'FFA', 'STS')) +
+  annotate("rect", xmin = -Inf, xmax = Inf, ymin = -0.2, ymax = 0.2,
+           alpha = .1) +
+  geom_segment(aes(x = -Inf, y = -1, xend = -Inf, yend = 1),
+               color = 'black', linetype = 1, size = 1) +
+  geom_segment(aes(x = 'OFA', y = -Inf, xend = 'STS', yend = -Inf),
+               color = 'black', linetype = 1, size = 1) +
+  geom_segment(aes(x = -Inf, y = 0, xend = Inf, yend = 0),
+               color = 'black', linetype = 3, size = 1) +
+  geom_line(position = pd, alpha = 0.15, size = 0.6, color = 'black') +
+  geom_point(position = pd, size = 2.0, stroke = 1.0, fill = NA) +
+  facet_grid(rows = vars(sex), cols = vars(hand), scales = "free") +
+  scale_color_manual(values = c("#EF8A62", "#67A9CF")) +
+  scale_fill_manual(values = c("#EF8A62", "#67A9CF")) +
+  scale_shape_manual(values = c(21, 23)) +
+  theme(plot.margin = unit(c(5, 30, 5, 5), 'pt'),
+        panel.background = element_blank(),
+        strip.background = element_blank(),
+        strip.text = element_text(color = 'black', size = 18, face = 'bold'), 
+        plot.title = element_text(color = 'black', size = 18, face = 'bold', 
+                                  hjust = 0),
+        axis.title.x = element_text(color = 'black', size = 16, face = 'bold',
+                                    margin = margin(t = 10)),
+        axis.title.y = element_text(color = 'black', size = 16, face = 'bold',
+                                    margin = margin(r = 10)),
+        axis.text.x = element_text(color = 'black', size = 14),
+        axis.text.y = element_text(color = 'black', size = 14),
+        panel.grid.major.x = element_line(size = 0.5, linetype = 'solid',
+                                          colour = "gray98"),
+        panel.grid.major.y = element_line(size = 0.5, linetype = 'solid',
+                                          colour = "gray98"),
+        panel.grid.minor.y = element_line(size = 0.25, linetype = 'solid',
+                                          colour = "gray98"),
+        legend.text = element_text(color="black", size=rel(1.25)),
+        legend.title = element_blank(),
+        legend.background = element_rect(fill="white"),
+        legend.key = element_blank(),
+        legend.position = "bottom") +
+  labs(y = 'Observed LI-Value', x = '',
+       color = 'Handedness',
+       shape = 'Sex'); subj_plot
+ggsave(filename = './indiv_differences_lateralisation.tiff',
+       plot = subj_plot, 
+       width = 20, height = 18, units = 'cm',
+       dpi = 1200)
+
+# plot subjects by lateralisation of the OFA
+pd = position_dodge(0.2)
+lat_plot <- ggplot(data = filter(data, !is.na(lat)), 
+                    aes(x = area,
+                        y = value, group = subID, 
+                        shape = sex, color = hand)) +
+  scale_x_discrete(limits = c('OFA', 'FFA', 'STS')) +
+  annotate("rect", xmin = -Inf, xmax = Inf, ymin = -0.2, ymax = 0.2,
+           alpha = .1) +
+  geom_segment(aes(x = -Inf, y = -1, xend = -Inf, yend = 1),
+               color = 'black', linetype = 1, size = 1) +
+  geom_segment(aes(x = 'OFA', y = -Inf, xend = 'STS', yend = -Inf),
+               color = 'black', linetype = 1, size = 1) +
+  geom_segment(aes(x = -Inf, y = 0, xend = Inf, yend = 0),
+               color = 'black', linetype = 3, size = 1) +
+  geom_line(position = pd, alpha = 0.15, size = 0.6, color = 'black') +
+  geom_point(position = pd, size = 2.0, stroke = 1.0, show.legend = T,
+             fill = NA) +
+  facet_grid(rows = vars(sex), cols = vars(lat), scales = "free") +
+  scale_color_manual(values = c("#EF8A62", "#67A9CF")) +
+  scale_shape_manual(values = c(21, 23)) +
+  theme(plot.margin = unit(c(5, 30, 5, 5), 'pt'),
+        panel.background = element_blank(),
+        strip.background = element_blank(),
+        strip.text = element_text(color = 'black', size = 18, face = 'bold'), 
+        plot.title = element_text(color = 'black', size = 18, face = 'bold', 
+                                  hjust = 0),
+        axis.title.x = element_text(color = 'black', size = 16, face = 'bold',
+                                    margin = margin(t = 10)),
+        axis.title.y = element_text(color = 'black', size = 16, face = 'bold',
+                                    margin = margin(r = 10)),
+        axis.text.x = element_text(color = 'black', size = 14),
+        axis.text.y = element_text(color = 'black', size = 14),
+        panel.grid.major.x = element_line(size = 0.5, linetype = 'solid',
+                                          colour = "gray98"),
+        panel.grid.major.y = element_line(size = 0.5, linetype = 'solid',
+                                          colour = "gray98"),
+        panel.grid.minor.y = element_line(size = 0.25, linetype = 'solid',
+                                          colour = "gray98"),
+        legend.text = element_text(color="black", size=rel(1.25)),
+        legend.title = element_blank(),
+        legend.background = element_rect(fill="white"),
+        legend.key = element_blank(),
+        legend.position = "bottom") +
+  labs(y = 'Observed LI-Value', x = '',
+       fill = 'Handedness',
+       shape = 'Sex'); lat_plot
+ggsave(filename = './Fig_S2_by_lateralisation_plot.tiff',
+       plot = lat_plot, 
+       width = 20, height = 18, units = 'cm',
+       dpi = 1200)
+
+# check correlation between LI values
+data_wide <- data %>%
+  pivot_wider(names_from ='area', values_from = c('value', 'li_positive')) 
+
+data_wide %>% 
+  select(lat, sex, hand) %>% 
+  group_by(lat, sex) %>% tally()
+
+pkgcheck('apaTables')
+data_wide %>%
+  select(value_FFA:value_STS) %>%
+  apa.cor.table(file='./Table_S1_LI_values_correlation.rtf')
+
+# # Correlation table for Subgroups of data
+# data_wide %>%
+#   filter(lat == 'right dom.') %>%
+#   select(value_FFA:value_STS) %>%
+#   apa.cor.table(file='./Table_S2_LI_values_correlation_right.rtf')
+# 
+# data_wide %>%
+#   filter(lat == 'left lat.') %>%
+#   select(value_FFA:value_STS) %>%
+#   apa.cor.table(file='./Table_S3_LI_values_correlation_left.rtf')
+# 
+# data_wide %>%
+#   filter(lat == 'bilateral') %>%
+#   select(value_FFA:value_STS) %>%
+#   apa.cor.table(file='./Table_S4_LI_values_correlation_bilateral.rtf')
+
+
 
 # 4) compute descriptive statistics --------------------------------------------
 pkgcheck('sjPlot')
@@ -271,7 +421,15 @@ data %>%
   tab_df(file = './hand_sex_area_descriptives.html', digits = 3)
 
 # 5) compute mixed effects model -----------------------------------------------
-pkgcheck(c('lme4', 'car', 'performance', 'effectsize', 'gt'))
+pkgcheck(c('multimode', 'lme4', 'car', 'performance', 'effectsize', 'gt'))
+
+# check if distribution of LI values is bimodal
+# whole sample
+modetest(na.omit(data$value))
+# only FFA
+multimode::modetest(na.omit(data[data$area == 'OFA', ]$value))
+multimode::modetest(na.omit(data[data$area == 'FFA', ]$value))
+multimode::modetest(na.omit(data[data$area == 'STS', ]$value))
 
 # overall model
 mod_gamma_li <- glmer(data = data,
@@ -366,9 +524,12 @@ anova_mod_gamma_lh %>%
 
 
 # 6) compute exploratory OLS model ---------------------------------------------
-pkgcheck('effectsize')
+pkgcheck(c('effectsize', 'caret', 'splitstackshape'))
 
-mod_ffa <- lm(data = filter(data, area == 'FFA'),
+# get ffa data
+data_ffa <- data %>% filter(area == 'FFA')
+
+mod_ffa <- lm(data = data_ffa,
               value ~ age_c + sex * hand,
               contrasts = list(sex = 'contr.sum',
                                hand = 'contr.sum'))
@@ -382,6 +543,46 @@ anova_mod_ffa %>%
   ) %>%
   gtsave(
     "./anova_mod_ffa.html", inline_css = TRUE)
+
+# ** run cross validation **
+# split data into train and test using stratified sampling
+d <- tibble::rownames_to_column(data_ffa, var = "id") %>% 
+  mutate_at(vars(id), as.integer)
+training <- d %>% 
+  stratified(., group = c("hand", 'sex'), size = 0.80)
+dim(training)
+
+# proportion check
+prop.table(table(training$hand)) 
+
+tControl <- trainControl(
+  method = "cv", # cross validation
+  number = 10, # 10 folds
+  search = "random", # auto hyperparameter selection
+  savePredictions = T
+)
+
+set.seed(256)
+cv_lm <- train(
+  value ~ age_c + sex * hand, 
+  data = training[,-1], 
+  method = "lm",
+  trControl = tControl
+)
+
+# get best model
+summary(cv_lm$finalModel)
+print(cv_lm)
+anova_cv_mod_ffa <- car::Anova(cv_lm$finalModel, type = 'III', test = 'F')
+anova_cv_mod_ffa %>%
+  apa("ANOVA table FFA LI-model (Cross Validation)") %>%
+  fmt_number(columns = c(2, 5), decimals = 4) %>%
+  tab_source_note(
+    source_note = 
+      md(paste0('*Note.* Foumla: `li ~ ', as.character(formula(cv_lm$finalModel))[3], '`' ))
+  ) %>%
+  gtsave(
+    "./anova_mod_ffa_cv.html", inline_css = TRUE)
 
 standardize_parameters(mod_ffa) %>%
   apa("Standardized beta coefficients: 
@@ -411,7 +612,7 @@ plot(mod_ffa, ask = F)
 # 7) compute pairwise contrasts for interaction --------------------------------
 pkgcheck('emmeans')
 
-ffa_means <- emmeans(mod_ffa, ~ hand | sex)
+ffa_means <- emmeans(mod_ffa, ~ hand  | sex)
 ffa_means %>%
   data.frame() %>%
   apa("Estimated marginal means (emmeans) for FFA model",
@@ -422,8 +623,9 @@ ffa_means %>%
   
 contrast(ffa_means, 'tukey', adjust = 'fdr') %>%
   data.frame() %>%
+  mutate(p.corrected = p.adjust(p.value, 'hochberg')) %>%
   apa("Pairwise contrasts for FFA model",
       stub = F) %>%
-  fmt_number(columns = c(3:7), decimals = 4) %>%
+  fmt_number(columns = c(3:8), decimals = 4) %>%
   gtsave(
     "./contrasts_mod_ffa.html", inline_css = TRUE)
